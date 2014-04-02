@@ -60,7 +60,7 @@ test("can clone HTMLElements", function (assert) {
     assert.equal(el.ownerDocument, clone.ownerDocument)
     assert.equal(el.ownerDocument, deepClone.ownerDocument)
 
-    assert.equal(deepClone.outerHTML, "<h1 id=\"1\" style=\"top:5px;\"><img></h1>")
+    assert.equal(deepClone.outerHTML, "<h1 id=\"1\" style=\"top: 5px;\"><img></h1>")
 
     clone.id = 2
     assert.equal(el.id, 1)
@@ -147,7 +147,12 @@ test("HTMLElement", function (assert) {
 
 test("HTMLElement.attributes", function (assert) {
     var h1 = document.createElement("h1")
+    h1.setAttribute("id", 456)
+    assert.equal(h1.getAttribute("id"), 456)
+    assert.equal(h1.id, 456)
     h1.id = 123
+    assert.equal(h1.attributes[0].name, "id")
+    assert.equal(h1.attributes[0].value, 123)
     h1.setAttribute("id2", 321)
     assert.equal(h1.getAttribute("id"), 123)
     assert.equal(h1.getAttribute("id2"), 321)
@@ -159,12 +164,41 @@ test("HTMLElement.attributes", function (assert) {
     assert.equal(h1.getAttribute("toString"), null)
     assert.equal(""+h1, '<h1 id="123"></h1>')
 
+    h1.setAttribute("class", "some classes")
+    assert.equal(h1.getAttribute("class"), "some classes")
+    assert.equal(h1.className, "some classes")
     h1.className = "my-class"
     assert.equal(""+h1, '<h1 id="123" class="my-class"></h1>')
 
     h1.style.top = "5px"
     h1.style.left = "15px"
-    assert.equal(""+h1, '<h1 id="123" class="my-class" style="top:5px;left:15px;"></h1>')
+    assert.equal(""+h1, '<h1 id="123" class="my-class" style="top: 5px; left: 15px;"></h1>')
+
+    assert.equal(h1.attributes.length, 3)
+    h1.removeAttribute("style")
+    h1.removeAttribute("class")
+    h1.removeAttribute("id")
+    assert.equal(h1.attributes.length, 0)
+    assert.equal(h1.id, "")
+
+    h1.style.top = "5px"
+    h1.style.left = "15px"
+    assert.equal(h1.attributes[0].name, "style")
+    assert.equal(h1.attributes[0].value, "top: 5px; left: 15px;")
+    var style = h1.attributes[0]
+    style.value = "right: 20px"
+    assert.equal(h1.attributes[0].value, "right: 20px;")
+    assert.equal(h1.style.right, '20px')
+    assert.equal(h1.style.top)
+    assert.equal(h1.style.left)
+    h1.removeAttribute("style")
+    assert.equal(h1.style.right)
+
+    h1.className = "hi there"
+    assert.equal(h1.attributes[0].name, "class")
+    assert.equal(h1.attributes[0].value, "hi there")
+    h1.removeAttribute("class")
+    assert.equal(h1.className, "")
 
     assert.end()
 })

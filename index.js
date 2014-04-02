@@ -106,8 +106,9 @@ Node.prototype = {
 		, node = own(self.ownerDocument, new self.constructor(self.tagName || self.data))
 
 		if (self.hasAttribute) {
-			for (key in self) if (self.hasAttribute(key)) node[key] = self[key]
-			for (key in self.style) node.style[key] = self.style[key]
+			for (var i = 0, attrs = self.attributes, l = attrs.length; i < l; ++i) {
+			  node.setAttribute(attrs[i].name, attrs[i].value)
+			}
 		}
 
 		if (deep && self.hasChildNodes()) {
@@ -137,9 +138,54 @@ extend(DocumentFragment, Node, {
 
 function HTMLElement(tag) {
 	var self = this
+	, prop_regex = /^\s*(.*?):\s*(.*)?\s*$/
+	, attrs = []
+	, style_attr = {
+		name: "style",
+		get value() {
+			return Object.keys(self.style).map(function(key) {
+				return key + ": " + self.style[key] + ";"
+			}).join(" ")
+		},
+		set value(value) {
+			var match
+			, attr = self.getAttribute("style")
+			self.style = value.split(";").reduce(function(style, prop) {
+				if(!(match = prop.match(prop_regex))) return style
+				style[match[1]] = match[2]
+				return style
+			}, {})
+		}
+	}
+
 	self.nodeName = self.tagName = tag.toLowerCase()
 	self.childNodes = []
 	self.style = {}
+	Object.defineProperty(self, "attributes", {
+		get: function() {
+			if (!Object.keys(self.style).length) return attrs
+			var _attrs = attrs.concat(style_attr)
+			_attrs.push = attrs.push.bind(attrs)
+			_attrs.splice = attrs.splice.bind(attrs)
+			return _attrs
+		}
+	})
+	Object.defineProperty(self, "id", {
+		get: function() {
+			return this.attributes ? this.getAttribute("id") || "" : ""
+		},
+		set: function(id) {
+			id ? this.setAttribute("id", id) : this.removeAttribute("id")
+		}
+	})
+	Object.defineProperty(self, "className", {
+		get: function() {
+			return this.attributes ? this.getAttribute("class") || "" : ""
+		},
+		set: function(name) {
+			name ? this.setAttribute("class", name) : this.removeAttribute("class")
+		}
+	})
 }
 
 var elRe = /([.#:[])([-\w]+)(?:=([-\w]+)])?]?/g
@@ -177,21 +223,9 @@ var voidElements = {
 }
 
 function attributesToString(node) {
-	var key
-	, attrs = []
-
-	for (key in node) if (node.hasAttribute(key)) {
-		attrs.push(key + '="' + node[key] + '"')
-	}
-
-	if (node.className) {
-		attrs.push('class="' + node.className + '"')
-	}
-
-	var style = Object.keys(node.style).reduce(function (str, key) {
-		return str + key + ":" + node.style[key] + ";"
-	}, "")
-	if (style) attrs.push('style="' + style + '"')
+	var attrs = node.attributes.map(function(attr) {
+		return attr.name + '="' + attr.value + '"'
+	})
 
 	return attrs.length ? " " + attrs.join(" ") : ""
 }
@@ -200,18 +234,35 @@ extend(HTMLElement, Node, {
 	nodeType: 1,
 	tagName: null,
 	style: null,
-	className: "",
 	hasAttribute: function(name) {
-		return this.hasOwnProperty(name) && !(name in HTMLElement.prototype)
+		return !!this.getAttribute(name)
 	},
 	getAttribute: function(name) {
-		return this.hasAttribute(name) ? this[name] : null
+		for(var i = 0, attrs = this.attributes, l = attrs.length; i < l; ++i) {
+		  if (attrs[i].name === name) return attrs[i].value
+		}
+		return null
 	},
 	setAttribute: function(name, value) {
-		this[name] = value
+		var attr
+		if(name === "style") {
+			this.style.temp = ""
+		}
+		for(var i = 0, attrs = this.attributes, l = attrs.length; i < l; ++i) {
+			if (attrs[i].name === name) {
+				attr = attrs[i]
+				break
+		  }
+		}
+		attr ? attr.value = value : attrs.push({name: name, value: value})
 	},
 	removeAttribute: function(name) {
-		delete this[name]
+		if (name === "style") {
+			return this.style = {}
+		}
+		for(var i = 0, attrs = this.attributes, l = attrs.length; i < l; ++i) {
+		  if (attrs[i].name === name) return attrs.splice(i, 1)
+		}
 	},
 	getElementById: function(id) {
 		if (this.id == id) return this
