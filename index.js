@@ -37,7 +37,7 @@ Node.prototype = {
 		}).join("") : this.nodeType === 3 ? this.data : ""
 	},
 	set textContent(text) {
-		if(self.nodeType === 3) return self.data = text
+		if(this.nodeType === 3) return this.data = text
 		for (var self = this; self.firstChild;) self.removeChild(self.firstChild)
 		self.appendChild(self.ownerDocument.createTextNode(text))
 	},
