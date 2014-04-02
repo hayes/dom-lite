@@ -34,7 +34,7 @@ Node.prototype = {
 	get textContent() {
 		return this.hasChildNodes() ? this.childNodes.map(function(child){
 			return child[ child.nodeType == 3 ? "data" : "textContent" ]
-		}).join("") : ""
+		}).join("") : this.nodeType === 3 ? this.data : ""
 	},
 	set textContent(text) {
 		for (var self = this; self.firstChild;) self.removeChild(self.firstChild)
